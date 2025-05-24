@@ -1,4 +1,8 @@
-﻿namespace W3SavegameEditor.Core
+﻿using System;
+using System.Linq;
+using System.Reflection;
+
+namespace W3SavegameEditor.Core
 {
     public static class AttributeOperations
     {

@@ -1,4 +1,6 @@
-﻿using W3SavegameEditor.Core.Savegame.Attributes;
+﻿using System.Collections.Generic;
+using System.IO;
+using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
 namespace W3SavegameEditor.Core.Savegame.VariableParsers

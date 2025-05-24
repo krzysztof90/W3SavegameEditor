@@ -1,4 +1,6 @@
-﻿namespace W3SavegameEditor.Core.Savegame.Attributes
+﻿using System;
+
+namespace W3SavegameEditor.Core.Savegame.Attributes
 {
     public class VariableParserAttribute : Attribute
     {
