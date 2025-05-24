@@ -2,8 +2,6 @@
 {
     public class UnknownVariable : Variable
     {
-        public static readonly UnknownVariable None = new UnknownVariable { Name = "None" };
-
         public byte[] Data { get; set; }
 
         public override string ToString()

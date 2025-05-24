@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.VariableParsers;
 using W3SavegameEditor.Core.Savegame.Variables;
 
@@ -9,60 +9,65 @@ namespace W3SavegameEditor.Core.Savegame
 {
     public class VariableParser
     {
-        private readonly string[] _names;
-        private readonly Dictionary<string, VariableParserBase> _magicNumberToParserDictionary;
-        private readonly Dictionary<Type, VariableParserBase> _typeToParserDictionary;
-
-        public VariableParser(string[] names)
+        public VariableParser()
         {
-            _names = names;
-            _magicNumberToParserDictionary = new Dictionary<string, VariableParserBase>();
-            _typeToParserDictionary = new Dictionary<Type, VariableParserBase>();
         }
 
-        public void RegisterParsers(IEnumerable<VariableParserBase> parsers)
+        private VariableParserBase CreateParser(string magicNumber)
         {
-            foreach (var parser in parsers)
+            Type parserType = AttributeOperations.GetTypeByAttribute<VariableParserBase, VariableParserAttribute>((VariableParserAttribute attribute) => attribute?.MagicNumber == magicNumber);
+
+            if (parserType == null)
             {
-                parser.Names = _names;
-                _magicNumberToParserDictionary[parser.MagicNumber] = parser;
-                _typeToParserDictionary[parser.SupportedType] = parser;
+                magicNumber = magicNumber.Substring(0, 2);
+                parserType = AttributeOperations.GetTypeByAttribute<VariableParserBase, VariableParserAttribute>((VariableParserAttribute attribute) => attribute?.MagicNumber == magicNumber);
             }
+
+            if (parserType == null)
+                return null;
+
+            return (VariableParserBase)Activator.CreateInstance(parserType, this);
+        }
+        private VariableParserBase CreateParser(BinaryReader reader)
+        {
+            return CreateParser(reader.PeekString(4));
         }
 
-        public T Parse<T>(BinaryReader reader, ref int size) where T : Variable
+        public Variable Parse(BinaryReader reader, List<string> names, ref int size)
         {
-            var parser = _typeToParserDictionary[typeof (T)];
-            parser.Verify(reader, ref size);
-            return (T)parser.Parse(reader, ref size);
-        }
+            var magic = reader.PeekString(4);
+            VariableParserBase parser = CreateParser(reader);
 
-        [DebuggerHidden]
-        public Variable Parse(BinaryReader reader, ref int size)
-        {
-            if (_magicNumberToParserDictionary.TryGetValue(reader.PeekString(4), out var parser) ||
-                _magicNumberToParserDictionary.TryGetValue(reader.PeekString(2), out parser))
+            if (parser == null)
             {
-                parser.Verify(reader, ref size);
-                var variable = parser.Parse(reader, ref size);
-                return variable;
+                //TODO Is it always after some variable type? Is its size constant?
+                //some contains magic strings inside
+                //TODO finally remove this
+                var unknownVariable = new UnknownVariable
+                {
+                    Data = reader.ReadBytes(size, ref size)
+                };
+
+                //var text = System.Text.Encoding.UTF8.GetString(unknownVariable.Data);
+
+                return unknownVariable;
+            }
+
+            Variable variable = parser.Parse(reader, names, ref size);
+            variable.MagicNumber = parser.MagicNumber;
+            return variable;
+        }
+
+        public void Write(BinaryWriter writer, Variable variable)
+        {
+            if (variable is UnknownVariable unknownVariable)
+            {
+                writer.Write(unknownVariable.Data);
             }
             else
             {
-                //string hexMagicNumber = BitConverter.ToString(Encoding.ASCII.GetBytes(magicNumber));
-                //Debug.WriteLine(
-                //    "Failed to parse {0} bytes of data at {1}. Magic number was {2}",
-                //    size,
-                //    reader.BaseStream.Position,
-                //    hexMagicNumber);
-
-                var unknownVariable = new UnknownVariable
-                {
-                    Name = "Unknown",
-                    Data = reader.ReadBytes(size)
-                };
-                size = 0;
-                return unknownVariable;
+                VariableParserBase parser = CreateParser(variable.MagicNumber);
+                parser.Write(writer, variable);
             }
         }
     }

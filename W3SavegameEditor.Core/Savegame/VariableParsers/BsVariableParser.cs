@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.IO;
-using W3SavegameEditor.Core.Exceptions;
+using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
 namespace W3SavegameEditor.Core.Savegame.VariableParsers
@@ -8,38 +8,29 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
     /// <summary>
     /// A set of variables
     /// </summary>
+    [VariableParser("BS")]
     public class BsVariableParser : VariableParserBase<BsVariable>
     {
-        private readonly VariableParser _parser;
-
-        public BsVariableParser(VariableParser parser)
+        public BsVariableParser(VariableParser parser) : base(parser)
         {
-            _parser = parser;
         }
 
-        public override string MagicNumber => "BS";
-
-        public override void Verify(BinaryReader reader, ref int size)
+        public override BsVariable ParseImpl(BinaryReader reader, List<string> names, ref int size)
         {
-            base.Verify(reader, ref size);
+            ushort nameIndex = reader.ReadUInt16(ref size);
+            string name = SavegameFile.GetVariableIndexName(nameIndex, names);
 
-            const int expectedSize = sizeof(short);
-            if (size != expectedSize)
-                throw new ParseVariableException($"BSVariable: Expected to read {expectedSize} bytes but found {size} at {reader.BaseStream.Position}");
-        }
-
-        public override BsVariable ParseImpl(BinaryReader reader, ref int size)
-        {
-            short nameStringIndex = reader.ReadInt16();
-            string name = Names[nameStringIndex - 1];
-            size -= sizeof(short);
-            Debug.Assert(size == 0);
-            
             return new BsVariable
             {
                 Name = name,
+                NameIndex = nameIndex,
                 Variables = new Variable[0]
             };
+        }
+
+        public override void WriteImpl(BinaryWriter writer, BsVariable variable)
+        {
+            writer.Write(variable.NameIndex);
         }
     }
 }

@@ -2,54 +2,43 @@
 using System.Diagnostics;
 using System.IO;
 using W3SavegameEditor.Core.Exceptions;
+using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
 namespace W3SavegameEditor.Core.Savegame.VariableParsers
 {
+    [VariableParser("SS")]
     public class SsVariableParser : VariableParserBase<SsVariable>
     {
-        private readonly VariableParser _parser;
-
-        public SsVariableParser(VariableParser parser)
+        public SsVariableParser(VariableParser parser) : base(parser)
         {
-            _parser = parser;
         }
 
-        public override string MagicNumber => "SS";
-
-        public override void Verify(BinaryReader reader, ref int size)
+        public override SsVariable ParseImpl(BinaryReader reader, List<string> names, ref int size)
         {
-            base.Verify(reader, ref size);
+            int sizeInner = reader.ReadInt32(ref size);
 
-            var position = reader.BaseStream.Position;
-            var sizeInner = reader.ReadInt32();
-            reader.BaseStream.Position = position;
-            var expectedSize = sizeof(int) + sizeInner;
-
-            if (size != expectedSize)
-                throw new ParseVariableException($"SSVariable: Expected to read {expectedSize} bytes but found {size} at {reader.BaseStream.Position}");
-        }
-
-        public override SsVariable ParseImpl(BinaryReader reader, ref int size)
-        {
-            int sizeInner = reader.ReadInt32();
-            size -= sizeof(int);
             Debug.Assert(sizeInner == size);
 
-            List<Variable> variables = new List<Variable>(); 
+            List<Variable> variables = new List<Variable>();
             while (size > 0)
             {
-                var variable = _parser.Parse(reader, ref size);
+                var variable = _parser.Parse(reader, names, ref size);
                 variables.Add(variable);
             }
 
-            Debug.Assert(size == 0);
-
             return new SsVariable
             {
-                Name = "None",
-                Variables = variables.ToArray()
+                Variables = variables.ToArray(),
+                SizeInner = sizeInner
             };
+        }
+
+        public override void WriteImpl(BinaryWriter writer, SsVariable variable)
+        {
+            writer.Write(variable.SizeInner);
+            foreach (Variable variable2 in variable.Variables)
+                _parser.Write(writer, variable2);
         }
     }
 }

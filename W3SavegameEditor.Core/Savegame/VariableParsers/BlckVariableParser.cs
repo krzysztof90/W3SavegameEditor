@@ -1,49 +1,53 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using W3SavegameEditor.Core.Exceptions;
+using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
 namespace W3SavegameEditor.Core.Savegame.VariableParsers
 {
+    [VariableParser("BLCK")]
     public class BlckVariableParser : VariableParserBase<BlckVariable>
     {
-        private readonly VariableParser _parser;
-        
-        public BlckVariableParser(VariableParser parser)
+        public BlckVariableParser(VariableParser parser) : base(parser)
         {
-            _parser = parser;
         }
 
-        public override string MagicNumber => "BLCK";
-
-        public override BlckVariable ParseImpl(BinaryReader reader, ref int size)
+        public override BlckVariable ParseImpl(BinaryReader reader, List<string> names, ref int size)
         {
-            ushort nameIndex = reader.ReadUInt16();
-            string name = Names[nameIndex - 1];
-            ushort blckSize = reader.ReadUInt16();
-            ushort unknown3 = reader.ReadUInt16();
-            size -= 3 * sizeof(short);
+            ushort nameIndex = reader.ReadUInt16(ref size);
+            string name = SavegameFile.GetVariableIndexName(nameIndex, names);
+
+            ushort blckSize = reader.ReadUInt16(ref size);
+            ushort unknown3 = reader.ReadUInt16(ref size);
 
             // TODO: Only read blckSize
             List<Variable> variables = new List<Variable>();
 
-            Variable debugLastVariable = null;
-            long debugStartPos = reader.BaseStream.Position;
-            int debugIndex = 0;
+            //TODO if this is inside another BlckVariable, then this outside loop will end after one run. Is it ok?
             while (size > 0)
             {
-                var variable = _parser.Parse(reader, ref size);
+                Variable variable = _parser.Parse(reader, names, ref size);
                 variables.Add(variable);
-
-                debugLastVariable = variable;
-                debugIndex++;
             }
-            
+
             return new BlckVariable
             {
                 Name = name,
-                Variables = variables.ToArray()
+                NameIndex = nameIndex,
+                Variables = variables.ToArray(),
+                BlckSize = blckSize,
+                Unknown3 = unknown3,
             };
+        }
+
+        public override void WriteImpl(BinaryWriter writer, BlckVariable variable)
+        {
+            writer.Write(variable.NameIndex);
+            writer.Write(variable.BlckSize);
+            writer.Write(variable.Unknown3);
+
+            foreach (Variable variable2 in variable.Variables)
+                _parser.Write(writer, variable2);
         }
     }
 }

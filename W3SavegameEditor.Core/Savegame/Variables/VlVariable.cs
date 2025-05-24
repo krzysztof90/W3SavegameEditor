@@ -1,13 +1,10 @@
 ﻿namespace W3SavegameEditor.Core.Savegame.Variables
 {
-    /// <summary>
-    /// A single variable
-    /// </summary>
-    public class VlVariable : TypedVariable
+    public class VlVariable : VariableTyped
     {
         public override string ToString()
         {
-            return "VL " +  base.ToString();
+            return "VL " + base.ToString();
         }
     }
 }

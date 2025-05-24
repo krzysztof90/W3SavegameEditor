@@ -2,9 +2,10 @@
 
 namespace W3SavegameEditor.Core.Savegame.Variables
 {
-    public class TypedVariable : Variable
+    public abstract class VariableTyped : Variable
     {
         public string Type { get; set; }
+        public ushort TypeIndex { get; set; }
         public Type ClrType { get; set; }
         public VariableValue Value { get; set; }
 

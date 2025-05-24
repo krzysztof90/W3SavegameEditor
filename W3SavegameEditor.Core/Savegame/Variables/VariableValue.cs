@@ -5,11 +5,13 @@ namespace W3SavegameEditor.Core.Savegame.Variables
     public abstract class VariableValue
     {
         public abstract object Object { get; }
+        public object AdditionalObject { get; set; }
     }
 
     public class VariableValue<T> : VariableValue
     {
         public T Value { get; set; }
+
         public static VariableValue<T> Create(T value)
         {
             return new VariableValue<T>
@@ -22,7 +24,6 @@ namespace W3SavegameEditor.Core.Savegame.Variables
         {
             get { return Value; }
         }
-
 
         public override string ToString()
         {
@@ -44,6 +45,7 @@ namespace W3SavegameEditor.Core.Savegame.Variables
     public class VariableArrayValue : VariableValue
     {
         public Array Value { get; private set; }
+        public Array VariableValues { get; private set; }
 
         public object this[int i]
         {
@@ -55,6 +57,15 @@ namespace W3SavegameEditor.Core.Savegame.Variables
             {
                 Value.SetValue(value, i);
             }
+        }
+
+        public VariableValue GetVariableValue(int i)
+        {
+            return (VariableValue)VariableValues.GetValue(i);
+        }
+        public void SetVariableValue(VariableValue variableValue, int i)
+        {
+            VariableValues.SetValue(variableValue, i);
         }
 
         public int Length
@@ -71,7 +82,8 @@ namespace W3SavegameEditor.Core.Savegame.Variables
         {
             return new VariableArrayValue
             {
-                Value = Array.CreateInstance(type, length)
+                Value = Array.CreateInstance(type, length),
+                VariableValues = Array.CreateInstance(typeof(VariableValue), length),
             };
         }
 

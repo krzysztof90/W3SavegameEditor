@@ -1,6 +1,6 @@
 ﻿namespace W3SavegameEditor.Core.Savegame.Variables
 {
-    public class VariableSet : Variable
+    public abstract class VariableSet : Variable
     {
         public Variable[] Variables { get; set; }
 

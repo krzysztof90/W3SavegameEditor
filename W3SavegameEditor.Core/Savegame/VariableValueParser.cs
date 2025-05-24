@@ -62,7 +62,7 @@ namespace W3SavegameEditor.Core.Savegame
                 }
                 else
                 {
-                    var typedVariable = variables.Peek() as TypedVariable;
+                    var typedVariable = variables.Peek() as VariableTyped;
                     if(typedVariable == null)
                     {
                         continue;
@@ -79,7 +79,7 @@ namespace W3SavegameEditor.Core.Savegame
                             if (serializableProperty.ArrayElementCType == null)
                             {
                                 // TODO: Check the element type name (e.g. CGUID)
-                                element = ((TypedVariable) variables.Pop()).Value.Object;
+                                element = ((VariableTyped) variables.Pop()).Value.Object;
                             }
                             else
                             {

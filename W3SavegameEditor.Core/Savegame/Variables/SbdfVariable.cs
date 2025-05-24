@@ -1,12 +1,12 @@
 ﻿namespace W3SavegameEditor.Core.Savegame.Variables
 {
-    public class AvalVariable : VariableTyped
+    public class SbdfVariable : Variable
     {
-        public int Unknown { get; set; }
+        public byte[] Uknown { get; set; }
 
         public override string ToString()
         {
-            return "AVAL " + base.ToString();
+            return "SBDF " + base.ToString();
         }
     }
 }

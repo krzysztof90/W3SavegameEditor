@@ -1,32 +1,48 @@
-﻿using System.IO;
-using W3SavegameEditor.Core.Exceptions;
+﻿using System.Collections.Generic;
+using System.IO;
+using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
 namespace W3SavegameEditor.Core.Savegame.VariableParsers
 {
+    [VariableParser("AVAL")]
     public class AvalVariableParser : VariableParserBase<AvalVariable>
     {
-        public override string MagicNumber => "AVAL";
-
-        public override AvalVariable ParseImpl(BinaryReader reader, ref int size)
+        public AvalVariableParser(VariableParser parser) : base(parser)
         {
-            short nameIndex = reader.ReadInt16();
-            string name = Names[nameIndex - 1];
-            short typeIndex = reader.ReadInt16();
-            string type = Names[typeIndex - 1];
-            size -= 2 * sizeof(short);
+        }
 
-            int unknown = reader.ReadInt32();
-            size -= sizeof(int);
+        public override AvalVariable ParseImpl(BinaryReader reader, List<string> names, ref int size)
+        {
+            ushort nameIndex = reader.ReadUInt16(ref size);
+            string name = SavegameFile.GetVariableIndexName(nameIndex, names);
 
-            var value = ReadValue(reader, type, ref size);
+            ushort typeIndex = reader.ReadUInt16(ref size);
+            string type = SavegameFile.GetVariableIndexName(typeIndex, names);
+
+            int unknown = reader.ReadInt32(ref size);
+
+            VariableValue value = ReadValue(reader, type, names, ref size);
 
             return new AvalVariable
             {
                 Name = name,
+                NameIndex = nameIndex,
                 Type = type,
-                Value = value
+                TypeIndex = typeIndex,
+                Value = value,
+                Unknown = unknown,
             };
+        }
+
+        public override void WriteImpl(BinaryWriter writer, AvalVariable variable)
+        {
+            //TODO don't store NameIndex and TypeIndex, get it from SavegameFile.GetVariableNameIndex
+            writer.Write(variable.NameIndex);
+            writer.Write(variable.TypeIndex);
+            writer.Write(variable.Unknown);
+
+            WriteValue(writer, variable.Type, variable.Value);
         }
     }
 }

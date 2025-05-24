@@ -1,6 +1,6 @@
 ﻿namespace W3SavegameEditor.Core.Savegame.Variables
 {
-    public class OpVariable : TypedVariable
+    public class OpVariable : VariableTyped
     {
         public override string ToString()
         {

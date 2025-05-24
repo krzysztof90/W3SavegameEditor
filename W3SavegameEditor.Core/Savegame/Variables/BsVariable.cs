@@ -4,7 +4,7 @@
     {
         public override string ToString()
         {
-            return "BS " + base.ToString();
+            return $"BS {Name} {base.ToString()}";
         }
     }
 }

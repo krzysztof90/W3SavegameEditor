@@ -1,31 +1,43 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
+using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
 namespace W3SavegameEditor.Core.Savegame.VariableParsers
 {
+    [VariableParser("VL")]
     public class VlVariableParser : VariableParserBase<VlVariable>
     {
-        public override string MagicNumber
+        public VlVariableParser(VariableParser parser) : base(parser)
         {
-            get { return "VL"; }
         }
 
-        public override VlVariable ParseImpl(BinaryReader reader, ref int size)
+        public override VlVariable ParseImpl(BinaryReader reader, List<string> names, ref int size)
         {
-            short nameIndex = reader.ReadInt16();
-            short typeIndex = reader.ReadInt16();
-            size -= 2 * sizeof(short);
-            string name = Names[nameIndex - 1];
-            string type = Names[typeIndex - 1];
-            
-            var value = ReadValue(reader, type, ref size);
+            ushort nameIndex = reader.ReadUInt16(ref size);
+            string name = SavegameFile.GetVariableIndexName(nameIndex, names);
+
+            ushort typeIndex = reader.ReadUInt16(ref size);
+            string type = SavegameFile.GetVariableIndexName(typeIndex, names);
+
+            VariableValue value = ReadValue(reader, type, names, ref size);
 
             return new VlVariable
             {
                 Name = name,
+                NameIndex = nameIndex,
                 Type = type,
+                TypeIndex = typeIndex,
                 Value = value
             };
+        }
+
+        public override void WriteImpl(BinaryWriter writer, VlVariable variable)
+        {
+            writer.Write(variable.NameIndex);
+            writer.Write(variable.TypeIndex);
+
+            WriteValue(writer, variable.Type, variable.Value);
         }
     }
 }
