@@ -72,7 +72,7 @@ namespace W3SavegameEditor.Core.Savegame
                 savegameFile.ReadStringTable(reader);
                 savegameFile.ReadVariableTable(reader);
                 if (progress != null) progress.Report(true, false, 0, savegameFile.VariableTableEntries.Length);
-                savegameFile.ReadVariables(reader);
+                savegameFile.ReadVariables(reader, progress);
 
                 savegameFile.ReferenceVariable();
 
@@ -242,7 +242,7 @@ namespace W3SavegameEditor.Core.Savegame
             VariableTableEntries = Entries.OrderBy(e => e.Offset).ToArray();
         }
 
-        private void ReadVariables(BinaryReader reader)
+        private void ReadVariables(BinaryReader reader, IReadSavegameProgress progress)
         {
             var parser = new VariableParser();
 
@@ -283,6 +283,8 @@ namespace W3SavegameEditor.Core.Savegame
                 variable.Size = size;
                 variable.TokenSize = tokenSize;
                 variables[i] = variable;
+
+                if (i % 250 == 0 && progress != null) progress.Report(true, false, i, VariableTableEntries.Length);
             }
 
             // Parsing
@@ -354,8 +356,7 @@ namespace W3SavegameEditor.Core.Savegame
                 writer.BaseStream.Read(buffer2, 0, buffer2.Length);
                 writer.BaseStream.Position = l;
 
-                bool x = buffer.Item1.SequenceEqual(buffer2);
-                Debug.Assert(x);
+                Debug.Assert(buffer.Item1.SequenceEqual(buffer2));
 
                 writer.Write(buffer.Item1, 0, buffer.Item2);
             }
@@ -433,10 +434,10 @@ namespace W3SavegameEditor.Core.Savegame
                 if (!OrigVariables[i].Removed)
                 {
                     //with VariableTableEntries order will not be original (Entries has original order but little random)
-                    writer.Write(VariableTableEntries[i].Offset);
-                    writer.Write(VariableTableEntries[i].Size);
-                    //writer.Write(Entries[i].Offset);
-                    //writer.Write(Entries[i].Size);
+                    //writer.Write(VariableTableEntries[i].Offset);
+                    //writer.Write(VariableTableEntries[i].Size);
+                    writer.Write(Entries[i].Offset);
+                    writer.Write(Entries[i].Size);
                 }
             }
         }
