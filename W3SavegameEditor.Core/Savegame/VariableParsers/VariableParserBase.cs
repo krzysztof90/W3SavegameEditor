@@ -69,15 +69,29 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             }
         }
 
+        public static List<ushort> GetUInt16FromBytes(byte[] bytes)
+        {
+            List<ushort> ushorts = bytes.Select((x, b) => b == bytes.Length - 1 ? (0, 0) : (x, bytes[b + 1])).Select(b => BitConverter.ToUInt16(new byte[] { (byte)b.Item1, (byte)b.Item2 }, 0)).ToList();
+            return ushorts;
+        }
+
+        public static List<string> GetPotentialNames(byte[] bytes, List<string> names)
+        {
+            List<ushort> ushorts = GetUInt16FromBytes(bytes);
+            List<string> potentialNames = ushorts.Select(b => (b == 0 || b >= names.Count) ? "" : SavegameFile.GetVariableIndexName(b, names)).ToList();
+            return potentialNames;
+        }
+
         protected VariableValue ReadValue(BinaryReader reader, string type, List<string> names, ref int size)
         {
             //TODO Analyze how unknown bytes can be read. It is important to know how to write appropriate values
             //TODO all as separate classes
 
             //How to check if there are some repeatable names inside unknown bytes:
-            var bytes = reader.PeekBytes(size);
-            var p = bytes.Select((x, b) => b == bytes.Length - 1 ? (0, 0) : (x, bytes[b + 1])).Select(b => BitConverter.ToUInt16(new byte[] { (byte)b.Item1, (byte)b.Item2 }, 0)).ToList();
-            var potentialNames = p.Select(b => (b == 0 || b >= names.Count) ? "" : SavegameFile.GetVariableIndexName(b, names)).ToList();
+            //byte[] bytes = reader.PeekBytes(size);
+            //var chars = bytes.Select(b => (char)b).ToList();
+            //var ushorts = VariableParserBase<Variable>.GetUInt16FromBytes(bytes);
+            //List<string> potentialNames = GetPotentialNames(bytes, names);
             //of course it needs to repeat within different files
             //Some places it can be different but similar - we know it needs to be read as name
 
@@ -85,21 +99,23 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             {
                 case "String":
                     {
-                        // TODO: Implement correct variable-length decoding
                         byte headerByte = reader.ReadByte(ref size);
 
-                        byte singleByte = 0;
-                        // HACK: Sometimes a single byte has to be skipped
-                        if (reader.PeekByte() == 0x01)
+                        int stringLength = headerByte - 128;
+
+                        byte singleByte = reader.PeekByte();
+                        //TODO the lowest found char is 'A' 65, the highest singleByte is 2. Where is the border?
+                        if (singleByte < 32)
                         {
-                            singleByte = reader.ReadByte(ref size);
+                            reader.ReadByte(ref size);
+
+                            for (int i = 2; i <= singleByte; i++)
+                                stringLength += 64;
                         }
 
-                        byte stringLength = (byte)(headerByte & 127);
                         string value = reader.ReadString(stringLength, ref size);
 
                         VariableValue<string> variableValue = VariableValue<string>.Create(value);
-                        variableValue.AdditionalObject = (headerByte, singleByte);
                         return variableValue;
                     }
                 case "StringAnsi":
@@ -205,9 +221,20 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         variableValue.AdditionalObject = (unknown1, nameIndex, typeIndex);
                         return variableValue;
                     }
-                //TODO 19?
-                //case "Vector2":
-                //    return ReadUnknownBytes(reader, 19, ref size);
+                case "Vector2":
+                    {
+                        byte unknown1 = reader.ReadByte(ref size);
+
+                        ushort nameIndex = reader.ReadUInt16(ref size);
+                        string name = nameIndex != 0 ? SavegameFile.GetVariableIndexName(nameIndex, names) : null;
+
+                        ushort typeIndex = reader.ReadUInt16(ref size);
+                        string handleType = typeIndex != 0 ? SavegameFile.GetVariableIndexName(typeIndex, names) : null;
+
+                        VariableValue<(string, string)> variableValue = VariableValue<(string, string)>.Create((name, handleType));
+                        variableValue.AdditionalObject = (unknown1, nameIndex, typeIndex);
+                        return variableValue;
+                    }
                 case "EulerAngles":
                     {
                         byte unknown1 = reader.ReadByte(ref size);
@@ -226,6 +253,10 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     {
                     }
                     return ReadUnknownBytes(reader, 3, ref size);
+                case "EngineTransform":
+                    {
+                    }
+                    return ReadUnknownBytes(reader, 13, ref size);
                 case "GameTime":
                     {
                         //size 5
@@ -352,6 +383,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         //sometimes size = 0
                     }
                     //return ReadUnknownBytes(reader, 5, ref size);
+                    //return ReadUnknownBytes(reader, 2, ref size);
                     return ReadUnknownBytes(reader, size, ref size);
                 case "SActionPointId":
                     {
@@ -371,6 +403,26 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         return variableValue;
                     }
                 case "EAIAttitude":
+                    {
+                        ushort nameIndex = reader.ReadUInt16(ref size);
+
+                        string value = nameIndex != 0 ? SavegameFile.GetVariableIndexName(nameIndex, names) : null;
+
+                        VariableValue<string> variableValue = VariableValue<string>.Create(value);
+                        variableValue.AdditionalObject = nameIndex;
+                        return variableValue;
+                    }
+                case "EFocusModeVisibility":
+                    {
+                        ushort nameIndex = reader.ReadUInt16(ref size);
+
+                        string value = nameIndex != 0 ? SavegameFile.GetVariableIndexName(nameIndex, names) : null;
+
+                        VariableValue<string> variableValue = VariableValue<string>.Create(value);
+                        variableValue.AdditionalObject = nameIndex;
+                        return variableValue;
+                    }
+                case "EEquipmentSlots":
                     {
                         ushort nameIndex = reader.ReadUInt16(ref size);
 
@@ -444,78 +496,81 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     }
                     return ReadUnknownBytes(reader, size, ref size);
                 case "SRewardMultiplier":
-                    {
-                        byte unknown1 = reader.ReadByte(ref size);
+                    //{
+                    //    byte unknown1 = reader.ReadByte(ref size);
 
-                        ushort nameIndex1 = reader.ReadUInt16(ref size);
-                        string value1 = nameIndex1 != 0 ? SavegameFile.GetVariableIndexName(nameIndex1, names) : null;
+                    //    ushort nameIndex1 = reader.ReadUInt16(ref size);
+                    //    string value1 = nameIndex1 != 0 ? SavegameFile.GetVariableIndexName(nameIndex1, names) : null;
 
-                        ushort nameIndex2 = reader.ReadUInt16(ref size);
-                        string value2 = nameIndex2 != 0 ? SavegameFile.GetVariableIndexName(nameIndex2, names) : null;
+                    //    ushort nameIndex2 = reader.ReadUInt16(ref size);
+                    //    string value2 = nameIndex2 != 0 ? SavegameFile.GetVariableIndexName(nameIndex2, names) : null;
 
-                        byte[] unknown2 = reader.ReadBytes(8, ref size);
+                    //    byte[] unknown2 = reader.ReadBytes(8, ref size);
 
-                        //TODO 'typeIndex' is just another name for 'nameIndex' - this is potential name to use ReadValue
-                        ushort typeIndex = reader.ReadUInt16(ref size);
-                        string handleType = typeIndex != 0 ? SavegameFile.GetVariableIndexName(typeIndex, names) : null;
+                    //    //TODO 'typeIndex' is just another name for 'nameIndex' - this is potential name to use ReadValue
+                    //    ushort typeIndex = reader.ReadUInt16(ref size);
+                    //    string handleType = typeIndex != 0 ? SavegameFile.GetVariableIndexName(typeIndex, names) : null;
 
-                        //VariableValue value = ReadValue(reader, handleType, names, ref size);
+                    //    //VariableValue value = ReadValue(reader, handleType, names, ref size);
 
-                        //byte[] unknown3 = reader.ReadBytes(6, ref size);
-                        byte[] unknown3 = reader.ReadBytes(10, ref size);
+                    //    //byte[] unknown3 = reader.ReadBytes(6, ref size);
+                    //    byte[] unknown3 = reader.ReadBytes(10, ref size);
 
-                        VariableValue<(string, string/*, VariableValue*/)> variableValue = VariableValue<(string, string/*, VariableValue*/)>.Create((value1, value2/*, value*/));
-                        variableValue.AdditionalObject = (nameIndex1, nameIndex2, typeIndex, handleType, unknown1, unknown2, unknown3);
-                        return variableValue;
+                    //    VariableValue<(string, string/*, VariableValue*/)> variableValue = VariableValue<(string, string/*, VariableValue*/)>.Create((value1, value2/*, value*/));
+                    //    variableValue.AdditionalObject = (nameIndex1, nameIndex2, typeIndex, handleType, unknown1, unknown2, unknown3);
+                    //    return variableValue;
 
-                        //1-2 "rewardName"
-                        //3-4 "CName"
-                        //13-14 "Float"
-                    }
+                    //    //1-2 "rewardName"
+                    //    //3-4 "CName"
+                    //    //13-14 "Float"
+                    //}
+                    return ReadUnknownBytes(reader, size, ref size);
                 case "SBuffImmunity":
-                    {
-                        byte unknown1 = reader.ReadByte(ref size);
+                    //{
+                    //    byte unknown1 = reader.ReadByte(ref size);
 
-                        ushort nameIndex1 = reader.ReadUInt16(ref size);
-                        string value1 = nameIndex1 != 0 ? SavegameFile.GetVariableIndexName(nameIndex1, names) : null;
+                    //    ushort nameIndex1 = reader.ReadUInt16(ref size);
+                    //    string value1 = nameIndex1 != 0 ? SavegameFile.GetVariableIndexName(nameIndex1, names) : null;
 
-                        ushort nameIndex2 = reader.ReadUInt16(ref size);
-                        string value2 = nameIndex2 != 0 ? SavegameFile.GetVariableIndexName(nameIndex2, names) : null;
+                    //    ushort nameIndex2 = reader.ReadUInt16(ref size);
+                    //    string value2 = nameIndex2 != 0 ? SavegameFile.GetVariableIndexName(nameIndex2, names) : null;
 
-                        byte[] unknown2 = reader.ReadBytes(4, ref size);
+                    //    byte[] unknown2 = reader.ReadBytes(4, ref size);
 
-                        ushort nameIndex3 = reader.ReadUInt16(ref size);
-                        string value3 = nameIndex3 != 0 ? SavegameFile.GetVariableIndexName(nameIndex3, names) : null;
+                    //    ushort nameIndex3 = reader.ReadUInt16(ref size);
+                    //    string value3 = nameIndex3 != 0 ? SavegameFile.GetVariableIndexName(nameIndex3, names) : null;
 
-                        ushort nameIndex4 = reader.ReadUInt16(ref size);
-                        string value4 = nameIndex4 != 0 ? SavegameFile.GetVariableIndexName(nameIndex4, names) : null;
+                    //    ushort nameIndex4 = reader.ReadUInt16(ref size);
+                    //    string value4 = nameIndex4 != 0 ? SavegameFile.GetVariableIndexName(nameIndex4, names) : null;
 
-                        ushort nameIndex5 = reader.ReadUInt16(ref size);
-                        string value5 = nameIndex5 != 0 ? SavegameFile.GetVariableIndexName(nameIndex5, names) : null;
+                    //    ushort nameIndex5 = reader.ReadUInt16(ref size);
+                    //    string value5 = nameIndex5 != 0 ? SavegameFile.GetVariableIndexName(nameIndex5, names) : null;
 
-                        //VariableValue value = ReadValue(reader, value5, names, ref size);
+                    //    //VariableValue value = ReadValue(reader, value5, names, ref size);
 
-                        byte[] unknown3 = reader.ReadBytes(8, ref size);
+                    //    byte[] unknown3 = reader.ReadBytes(8, ref size);
 
-                        ushort nameIndex6 = reader.ReadUInt16(ref size);
-                        string value6 = nameIndex6 != 0 ? SavegameFile.GetVariableIndexName(nameIndex6, names) : null;
+                    //    ushort nameIndex6 = reader.ReadUInt16(ref size);
+                    //    string value6 = nameIndex6 != 0 ? SavegameFile.GetVariableIndexName(nameIndex6, names) : null;
 
-                        //VariableValue value = ReadValue(reader, value6, names, ref size);
+                    //    //VariableValue value = ReadValue(reader, value6, names, ref size);
 
-                        byte[] unknown4 = reader.ReadBytes(2, ref size);
+                    //    byte[] unknown4 = reader.ReadBytes(2, ref size);
 
-                        VariableValue<(string, string, string, string, string, string)> variableValue = VariableValue<(string, string, string, string, string, string)>.Create((value1, value2, value3, value4, value5, value6));
-                        variableValue.AdditionalObject = (nameIndex1, nameIndex2, nameIndex3, nameIndex4, nameIndex5, nameIndex6, unknown1, unknown2, unknown3, unknown4);
-                        return variableValue;
+                    //    VariableValue<(string, string, string, string, string, string)> variableValue = VariableValue<(string, string, string, string, string, string)>.Create((value1, value2, value3, value4, value5, value6));
+                    //    variableValue.AdditionalObject = (nameIndex1, nameIndex2, nameIndex3, nameIndex4, nameIndex5, nameIndex6, unknown1, unknown2, unknown3, unknown4);
+                    //    return variableValue;
 
-                        //1-2 "buffType"
-                        //3-4 "EEffectType"
-                        //9-10 "EET_Pull"
-                        //11-12 "sources"
-                        //13-14 "array:2,0,CName"
-                        //23-24 "HorseRidingBuffImmunity"
-                    }
-                //return ReadUnknownBytes(reader, 27, ref size);
+                    //    //1-2 "buffType"
+                    //    //3-4 "EEffectType"
+                    //    //9-10 "EET_Pull", "EET_Snowstorm", "EET_SnowstormQ403"
+                    //    //11-12 "sources"
+                    //    //13-14 "array:2,0,CName"
+                    //    //23-24 "HorseRidingBuffImmunity", "BuffImmunityInteractiveEntity"
+                    //}
+                    //return ReadUnknownBytes(reader, 27, ref size);
+                    //TODO if there is 3-elements array with this, then at the end of the array are 2 empty bytes. The same in STutorialMessage or CActor. Empty bytes count is arrayLength - 1 ? To change then SQuestThreadSuspensionData
+                    return ReadUnknownBytes(reader, size, ref size);
                 case "EVehicleSlot":
                     {
                         ushort nameIndex = reader.ReadUInt16(ref size);
@@ -630,7 +685,8 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                 case "STutorialMessage":
                     {
                     }
-                    return ReadUnknownBytes(reader, 5, ref size);
+                    //return ReadUnknownBytes(reader, 5, ref size);
+                    return ReadUnknownBytes(reader, size, ref size);
                 case "EBehaviorGraph":
                     {
                         ushort nameIndex = reader.ReadUInt16(ref size);
@@ -677,6 +733,8 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         //20-21 "array:2,0,SLevelDefinition"
                     }
                 case "SLevelDefinition":
+                    {
+                    }
                     return ReadUnknownBytes(reader, size, ref size);
                 case "W3AbilityManager":
                     //return ReadUnknownBytes(reader, 28556, ref size);
@@ -706,6 +764,10 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         //TODO next bytes are repeat of the last ones here, then next bytes are proper array? Other cases similar
                     }
                 case "SBaseStat":
+                    {
+                        //5-6 "current", "max"
+                        //7-8 "Float"
+                    }
                     return ReadUnknownBytes(reader, size, ref size);
                 case "W3EffectManager":
                     {
@@ -775,8 +837,8 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         //11-12 "array:2,0,array:2,0,SInputActionLock"
                     }
                 case "SInputActionLock":
-                    //return ReadUnknownBytes(reader, size, ref size);
-                    return ReadUnknownBytes(reader, 1, ref size);
+                    return ReadUnknownBytes(reader, size, ref size);
+                    //return ReadUnknownBytes(reader, 1, ref size);
                 case "WeaponHolster":
                     {
                         //6-7 "WeaponHolster"
@@ -802,7 +864,37 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         variableValue.AdditionalObject = (headerByte, singleByte);
                         return variableValue;
                     }
-                //case "SRadialSlotDef":
+                case "CActor":
+                    {
+                        //0-1 "Bool"
+                        //3-4, 13-14 "S_Sword_4", "S_Alchemy_5", "S_Sword_s11"
+                        //5-6 "charStats"
+                        //7-8 "handle:CCharacterStats"
+                        //9-10 "c"
+                        //15-16 "Entity"
+                        //19-20 "CCharacterStats"
+                        //24-25/34-35 "difficultyAbilities"
+                        //26-27/36-37 "array:2,0,array:2,0,CName"
+                        //32-33/42-43 "Bool"
+                    }
+                    return ReadUnknownBytes(reader, size, ref size);
+                case "SSelectedQuickslotItem":
+                    {
+                        //1-2 "sourceName"
+                        //3-4 "CName"
+                        //5-6 "isInteractive"
+                        //11-12 "itemID"
+                        //13-14 "SItemUniqueId"
+                        //15-16 "e"
+                        //20-21 "value"
+                        //22-23 "Uint32"
+                        //24-25 "isVisible"
+                    }
+                    return ReadUnknownBytes(reader, 36, ref size);
+                case "SAnimMultiplyCauser":
+                    return ReadUnknownBytes(reader, 15, ref size);
+                case "SRadialSlotDef":
+                    return ReadUnknownBytes(reader, size, ref size);
                 default:
                     {
                         if (type.StartsWith("array:2,0,"))
@@ -847,11 +939,22 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             {
                 case "String":
                     {
-                        (byte headerByte, byte singleByte) = ((byte, byte))variableValue.AdditionalObject;
+                        string value = (string)variableValue.Object;
+
+                        int stringLength = value.Length;
+                        int headerByteInt = stringLength + 128;
+                        byte singleByte = 0;
+                        while (headerByteInt > 191)
+                        {
+                            headerByteInt -= 64;
+                            singleByte++;
+                        }
+                        byte headerByte = (byte)headerByteInt;
+
                         writer.Write(headerByte);
-                        if (singleByte == 0x01)
+                        if (singleByte != 0)
                             writer.Write(singleByte);
-                        writer.Write(Encoding.ASCII.GetBytes((string)variableValue.Object));
+                        writer.Write(Encoding.ASCII.GetBytes(value));
                     }
                     break;
                 case "StringAnsi":
@@ -911,9 +1014,14 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         writer.Write(typeIndex);
                     }
                     break;
-                //case "Vector2":
-                //    WriteUnknownBytes(writer, variableValue);
-                //    break;
+                case "Vector2":
+                    {
+                        (byte unknown1, ushort nameIndex, ushort typeIndex) = ((byte, ushort, ushort))variableValue.AdditionalObject;
+                        writer.Write(unknown1);
+                        writer.Write(nameIndex);
+                        writer.Write(typeIndex);
+                    }
+                    break;
                 case "EulerAngles":
                     {
                         (byte unknown1, ushort nameIndex, ushort typeIndex) = ((byte, ushort, ushort))variableValue.AdditionalObject;
@@ -923,6 +1031,9 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     }
                     break;
                 case "EngineTime":
+                    WriteUnknownBytes(writer, variableValue);
+                    break;
+                case "EngineTransform":
                     WriteUnknownBytes(writer, variableValue);
                     break;
                 case "GameTime":
@@ -1008,6 +1119,18 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         writer.Write(nameIndex);
                     }
                     break;
+                case "EFocusModeVisibility":
+                    {
+                        ushort nameIndex = (ushort)variableValue.AdditionalObject;
+                        writer.Write(nameIndex);
+                    }
+                    break;
+                case "EEquipmentSlots":
+                    {
+                        ushort nameIndex = (ushort)variableValue.AdditionalObject;
+                        writer.Write(nameIndex);
+                    }
+                    break;
                 case "W3TutorialManagerUIHandler":
                     {
                         (ushort nameIndex1, ushort nameIndex2, ushort nameIndex3, byte[] unknown1, byte unknown2) = ((ushort, ushort, ushort, byte[], byte))variableValue.AdditionalObject;
@@ -1040,32 +1163,34 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     WriteUnknownBytes(writer, variableValue);
                     break;
                 case "SRewardMultiplier":
-                    {
-                        (ushort nameIndex1, ushort nameIndex2, ushort typeIndex, string handleType, byte unknown1, byte[] unknown2, byte[] unknown3) = ((ushort, ushort, ushort, string, byte, byte[], byte[]))variableValue.AdditionalObject;
-                        (string value1, string value2/*, VariableValue value*/) = ((string, string/*, VariableValue*/))variableValue.Object;
-                        writer.Write(unknown1);
-                        writer.Write(nameIndex1);
-                        writer.Write(nameIndex2);
-                        writer.Write(unknown2);
-                        writer.Write(typeIndex);
-                        //WriteValue(writer, handleType, value);
-                        writer.Write(unknown3);
-                    }
+                    //{
+                    //    (ushort nameIndex1, ushort nameIndex2, ushort typeIndex, string handleType, byte unknown1, byte[] unknown2, byte[] unknown3) = ((ushort, ushort, ushort, string, byte, byte[], byte[]))variableValue.AdditionalObject;
+                    //    (string value1, string value2/*, VariableValue value*/) = ((string, string/*, VariableValue*/))variableValue.Object;
+                    //    writer.Write(unknown1);
+                    //    writer.Write(nameIndex1);
+                    //    writer.Write(nameIndex2);
+                    //    writer.Write(unknown2);
+                    //    writer.Write(typeIndex);
+                    //    //WriteValue(writer, handleType, value);
+                    //    writer.Write(unknown3);
+                    //}
+                    WriteUnknownBytes(writer, variableValue);
                     break;
                 case "SBuffImmunity":
-                    {
-                        (ushort nameIndex1, ushort nameIndex2, ushort nameIndex3, ushort nameIndex4, ushort nameIndex5, ushort nameIndex6, byte unknown1, byte[] unknown2, byte[] unknown3, byte[] unknown4) = ((ushort, ushort, ushort, ushort, ushort, ushort, byte, byte[], byte[], byte[]))variableValue.AdditionalObject;
-                        writer.Write(unknown1);
-                        writer.Write(nameIndex1);
-                        writer.Write(nameIndex2);
-                        writer.Write(unknown2);
-                        writer.Write(nameIndex3);
-                        writer.Write(nameIndex4);
-                        writer.Write(nameIndex5);
-                        writer.Write(unknown3);
-                        writer.Write(nameIndex6);
-                        writer.Write(unknown4);
-                    }
+                    //{
+                    //    (ushort nameIndex1, ushort nameIndex2, ushort nameIndex3, ushort nameIndex4, ushort nameIndex5, ushort nameIndex6, byte unknown1, byte[] unknown2, byte[] unknown3, byte[] unknown4) = ((ushort, ushort, ushort, ushort, ushort, ushort, byte, byte[], byte[], byte[]))variableValue.AdditionalObject;
+                    //    writer.Write(unknown1);
+                    //    writer.Write(nameIndex1);
+                    //    writer.Write(nameIndex2);
+                    //    writer.Write(unknown2);
+                    //    writer.Write(nameIndex3);
+                    //    writer.Write(nameIndex4);
+                    //    writer.Write(nameIndex5);
+                    //    writer.Write(unknown3);
+                    //    writer.Write(nameIndex6);
+                    //    writer.Write(unknown4);
+                    //}
+                    WriteUnknownBytes(writer, variableValue);
                     break;
                 case "EVehicleSlot":
                     {
@@ -1185,7 +1310,18 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         writer.Write(Encoding.ASCII.GetBytes((string)variableValue.Object));
                     }
                     break;
-                //case "SRadialSlotDef":
+                case "CActor":
+                    WriteUnknownBytes(writer, variableValue);
+                    break;
+                case "SSelectedQuickslotItem":
+                    WriteUnknownBytes(writer, variableValue);
+                    break;
+                case "SAnimMultiplyCauser":
+                    WriteUnknownBytes(writer, variableValue);
+                    break;
+                case "SRadialSlotDef":
+                    WriteUnknownBytes(writer, variableValue);
+                    break;
                 default:
                     if (type.StartsWith("array:2,0,"))
                     {

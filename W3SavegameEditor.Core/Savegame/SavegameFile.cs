@@ -117,7 +117,7 @@ namespace W3SavegameEditor.Core.Savegame
                 //        savegameFile2.ReadFooter(reader);
                 //        savegameFile2.ReadStringTable(reader);
                 //        savegameFile2.ReadVariableTable(reader);
-                //        savegameFile2.ReadVariables(reader);
+                //        savegameFile2.ReadVariables(reader, null);
                 //        savegameFile2.ReferenceVariable();
                 //    }
                 //}
@@ -332,6 +332,11 @@ namespace W3SavegameEditor.Core.Savegame
                 Debug.Assert(size == 0);
 
                 currentVariableSet.Variables = childrenVariables.ToArray();
+
+                ////if (currentVariableSet is BsVariable bsVariable && bsVariable.Unknown1 != 0)
+                //if (currentVariableSet is BsVariable bsVariable && bsVariable.Name == null)
+                //{
+                //}
             }
             else
             {

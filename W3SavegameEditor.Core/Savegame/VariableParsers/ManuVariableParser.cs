@@ -29,11 +29,8 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
 
             int unknown2 = reader.ReadInt32(ref size);
             string doneMagicNumber = reader.ReadString(4, ref size);
-
             if (doneMagicNumber != "ENOD")
-            {
                 throw new ParseVariableException();
-            }
 
             return new ManuVariable
             {
