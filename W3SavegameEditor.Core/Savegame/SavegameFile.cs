@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using W3SavegameEditor.Core.ChunkedLz4;
 using W3SavegameEditor.Core.Common;
@@ -61,7 +60,7 @@ namespace W3SavegameEditor.Core.Savegame
             if (progress != null) progress.Report(true, true, 0, 0);
             using (FileStream compressedInputStream = File.OpenRead(path))
             using (Stream inputStream = ChunkedLz4File.Decompress(compressedInputStream))
-            using (BinaryReader reader = new BinaryReader(inputStream, Encoding.ASCII, true))
+            using (BinaryReader reader = new BinaryReader(inputStream, ChunkedLz4File.Encoding, true))
             {
                 reader.BaseStream.Position = 0;
 
@@ -88,7 +87,7 @@ namespace W3SavegameEditor.Core.Savegame
         {
             MemoryStream inputStream = new MemoryStream();
             //inputStream.Position = ChunkedLz4File.HeaderSize;
-            using (BinaryWriter writer = new BinaryWriter(inputStream, Encoding.ASCII, true))
+            using (BinaryWriter writer = new BinaryWriter(inputStream, ChunkedLz4File.Encoding, true))
             {
                 savegameFile.WritePreHeader(writer);
                 savegameFile.WriteHeader(writer);
@@ -354,16 +353,16 @@ namespace W3SavegameEditor.Core.Savegame
         {
             writer.BaseStream.Position = 0;
 
-            foreach (var buffer in AllBytes)
+            foreach (var bufferOrig in AllBytes)
             {
                 long l = writer.BaseStream.Position;
-                byte[] buffer2 = new byte[AllBytesLength];
-                writer.BaseStream.Read(buffer2, 0, buffer2.Length);
+                byte[] bufferCurrent = new byte[AllBytesLength];
+                writer.BaseStream.Read(bufferCurrent, 0, bufferCurrent.Length);
                 writer.BaseStream.Position = l;
 
-                Debug.Assert(buffer.Item1.SequenceEqual(buffer2));
+                Debug.Assert(bufferOrig.Item1.SequenceEqual(bufferCurrent));
 
-                writer.Write(buffer.Item1, 0, buffer.Item2);
+                writer.Write(bufferOrig.Item1, 0, bufferOrig.Item2);
             }
         }
 
@@ -376,7 +375,7 @@ namespace W3SavegameEditor.Core.Savegame
 
         private void WriteHeader(BinaryWriter writer)
         {
-            writer.Write(Encoding.ASCII.GetBytes("SAV3"));
+            writer.Write(ChunkedLz4File.Encoding.GetBytes("SAV3"));
             //TODO what are these values and other like Unknown1? What to change them for?
             writer.Write(TypeCode1);
             writer.Write(TypeCode2);
@@ -386,7 +385,7 @@ namespace W3SavegameEditor.Core.Savegame
         private void WriteFooter(BinaryWriter writer)
         {
             writer.Write(VariableTableOffset);
-            writer.Write(Encoding.ASCII.GetBytes("SE"));
+            writer.Write(ChunkedLz4File.Encoding.GetBytes("SE"));
         }
 
         private void WriteStringTable(BinaryWriter writer)
@@ -402,14 +401,14 @@ namespace W3SavegameEditor.Core.Savegame
         {
             NmSectionOffset = (int)writer.BaseStream.Position;
 
-            writer.Write(Encoding.ASCII.GetBytes("NM"));
+            writer.Write(ChunkedLz4File.Encoding.GetBytes("NM"));
         }
 
         private void WriteRbSection(BinaryWriter writer)
         {
             RbSectionOffset = (int)writer.BaseStream.Position;
 
-            writer.Write(Encoding.ASCII.GetBytes("RB"));
+            writer.Write(ChunkedLz4File.Encoding.GetBytes("RB"));
             int count = RbEntries.Length;
             writer.Write(count);
             for (int i = 0; i < count; i++)
@@ -499,7 +498,11 @@ namespace W3SavegameEditor.Core.Savegame
                 int i = variable.Position;
                 if (i != -1) //can be from SsVariable.Variables
                 {
-                    VariableTableEntries[i].Size = variableSet.WholeTokenSize;
+                    //TODO how to set else? - it occurs when BsVariable with no variables and nameIndex >= names.Count
+                    if (VariableTableEntries[i].Size >= variableSet.TokenSize)
+                    {
+                        VariableTableEntries[i].Size = variableSet.WholeTokenSize;
+                    }
                 }
             }
         }

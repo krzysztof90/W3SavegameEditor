@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using W3SavegameEditor.Core.Exceptions;
 using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 

@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using W3SavegameEditor.Core.Exceptions;
+using W3SavegameEditor.Core.ChunkedLz4;
 using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Values;
 using W3SavegameEditor.Core.Savegame.Values.Engine;
@@ -49,7 +45,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
 
         public override void Write(BinaryWriter writer, Variable variable)
         {
-            writer.Write(Encoding.ASCII.GetBytes(variable.MagicNumber));
+            writer.Write(ChunkedLz4File.Encoding.GetBytes(variable.MagicNumber));
             WriteImpl(writer, (T)variable);
         }
         public abstract void WriteImpl(BinaryWriter writer, T variable);
@@ -60,7 +56,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             var readMagicNumber = reader.ReadString(bytesToRead, ref size);
             if (readMagicNumber != MagicNumber)
             {
-                throw new ParseVariableException(
+                throw new InvalidOperationException(
                     string.Format(
                     "Expeced {0} but read {1} at {2}",
                     MagicNumber,
@@ -101,7 +97,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     {
                         byte headerByte = reader.ReadByte(ref size);
 
-                        int stringLength = headerByte - 128;
+                        int moreSize = 0;
 
                         byte singleByte = reader.PeekByte();
                         //TODO the lowest found char is 'A' 65, the highest singleByte is 2. Where is the border?
@@ -110,8 +106,10 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                             reader.ReadByte(ref size);
 
                             for (int i = 2; i <= singleByte; i++)
-                                stringLength += 64;
+                                moreSize += 64;
                         }
+
+                        int stringLength = headerByte - 128 + moreSize;
 
                         string value = reader.ReadString(stringLength, ref size);
 
@@ -123,7 +121,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         byte length = reader.ReadByte(ref size);
                         byte[] data = reader.ReadBytes(length, ref size);
 
-                        string value = Encoding.ASCII.GetString(data).TrimEnd(char.MinValue);
+                        string value = ChunkedLz4File.Encoding.GetString(data).TrimEnd(char.MinValue);
 
                         VariableValue<string> variableValue = VariableValue<string>.Create(value);
                         variableValue.AdditionalObject = (length, data);
@@ -648,7 +646,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         int length = unknown3[0] - 3;
 
                         byte[] data = reader.ReadBytes(length, ref size);
-                        string value = Encoding.ASCII.GetString(data).TrimEnd(char.MinValue);
+                        string value = ChunkedLz4File.Encoding.GetString(data).TrimEnd(char.MinValue);
 
                         VariableValue<string> variableValue = VariableValue<string>.Create(value);
                         variableValue.AdditionalObject = (unknown1, unknown2, unknown3, nameIndex1, nameIndex2, nameIndex3, nameIndex4, nameIndex5, data);
@@ -942,19 +940,17 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         string value = (string)variableValue.Object;
 
                         int stringLength = value.Length;
-                        int headerByteInt = stringLength + 128;
-                        byte singleByte = 0;
-                        while (headerByteInt > 191)
-                        {
-                            headerByteInt -= 64;
-                            singleByte++;
-                        }
-                        byte headerByte = (byte)headerByteInt;
+                        byte singleByte = (byte)(stringLength / 64);
+
+                        int moreSize = 0;
+                        for (int i = 2; i <= singleByte; i++)
+                            moreSize += 64;
+                        byte headerByte = (byte)(stringLength  + 128 - moreSize);
 
                         writer.Write(headerByte);
                         if (singleByte != 0)
                             writer.Write(singleByte);
-                        writer.Write(Encoding.ASCII.GetBytes(value));
+                        writer.Write(ChunkedLz4File.Encoding.GetBytes(value));
                     }
                     break;
                 case "StringAnsi":
@@ -1307,7 +1303,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         writer.Write(headerByte);
                         if (singleByte == 0x01)
                             writer.Write(singleByte);
-                        writer.Write(Encoding.ASCII.GetBytes((string)variableValue.Object));
+                        writer.Write(ChunkedLz4File.Encoding.GetBytes((string)variableValue.Object));
                     }
                     break;
                 case "CActor":

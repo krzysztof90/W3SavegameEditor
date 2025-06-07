@@ -34,6 +34,11 @@ namespace W3SavegameEditor.Core
             return Peek(reader, () => reader.ReadString(count));
         }
 
+        public static char[] PeekChars(this BinaryReader reader, int count)
+        {
+            return Peek(reader, () => reader.ReadChars(count));
+        }
+
         public static byte[] PeekBytes(this BinaryReader reader, int count)
         {
             return Peek(reader, () => reader.ReadBytes(count));
@@ -140,9 +145,7 @@ namespace W3SavegameEditor.Core
             {
                 int numRead = stream.Read(sharedBuffer, 0, buffer.Length);
                 if ((uint)numRead > (uint)buffer.Length)
-                {
                     throw new IOException("Stream Too Long");
-                }
                 new Span<byte>(sharedBuffer, 0, numRead).CopyTo(buffer);
                 return numRead;
             }

@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using W3SavegameEditor.Core.Exceptions;
+using W3SavegameEditor.Core.ChunkedLz4;
 using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
@@ -96,7 +94,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
 
             string doneMagicNumber = reader.ReadString(4, ref size);
             if (doneMagicNumber != "EBDF")
-                throw new ParseVariableException();
+                throw new InvalidOperationException();
 
             Debug.Assert(size == 0);
 
@@ -119,14 +117,14 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     if (value.unknown2 == 1)
                         writer.Write(value.unknown2);
 
-                    writer.Write(Encoding.ASCII.GetBytes(value.text));
+                    writer.Write(ChunkedLz4File.Encoding.GetBytes(value.text));
                 }
                 writer.Write(value.unknown3);
                 writer.Write(value.unknown4);
                 writer.Write(value.headerSize);
                 writer.Write(value.unknown5);
             }
-            writer.Write(Encoding.ASCII.GetBytes("EBDF"));
+            writer.Write(ChunkedLz4File.Encoding.GetBytes("EBDF"));
         }
     }
 }

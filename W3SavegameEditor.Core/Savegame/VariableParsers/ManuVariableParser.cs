@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using W3SavegameEditor.Core.Exceptions;
+using W3SavegameEditor.Core.ChunkedLz4;
 using W3SavegameEditor.Core.Savegame.Attributes;
 using W3SavegameEditor.Core.Savegame.Variables;
 
@@ -30,7 +30,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             int unknown2 = reader.ReadInt32(ref size);
             string doneMagicNumber = reader.ReadString(4, ref size);
             if (doneMagicNumber != "ENOD")
-                throw new ParseVariableException();
+                throw new InvalidOperationException();
 
             return new ManuVariable
             {
@@ -49,14 +49,14 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
 
             for (int i = 0; i < stringCount; i++)
             {
-                byte stringSize = (byte)System.Text.ASCIIEncoding.ASCII.GetByteCount(manuVariable.Strings[i]);
+                byte stringSize = (byte)ChunkedLz4File.Encoding.GetByteCount(manuVariable.Strings[i]);
 
                 writer.Write(stringSize);
-                writer.Write(Encoding.ASCII.GetBytes(manuVariable.Strings[i]));
+                writer.Write(ChunkedLz4File.Encoding.GetBytes(manuVariable.Strings[i]));
             }
 
             writer.Write(manuVariable.Unknown2);
-            writer.Write(Encoding.ASCII.GetBytes("ENOD"));
+            writer.Write(ChunkedLz4File.Encoding.GetBytes("ENOD"));
         }
     }
 }

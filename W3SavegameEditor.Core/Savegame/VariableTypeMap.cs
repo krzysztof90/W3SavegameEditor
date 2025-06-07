@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using W3SavegameEditor.Core.ChunkedLz4;
 
 namespace W3SavegameEditor.Core.Savegame
 {
@@ -13,7 +14,7 @@ namespace W3SavegameEditor.Core.Savegame
         private static uint HashFnv(string input)
         {
             uint fnvHash = FnvHashInitial;
-            byte[] data = Encoding.ASCII.GetBytes(input);
+            byte[] data = ChunkedLz4File.Encoding.GetBytes(input);
             for (int i = 0; i < data.Length; i++)
             {
                 fnvHash ^= data[i];

@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using W3SavegameEditor.Core.EncodingTools;
 
 namespace W3SavegameEditor.Core.ChunkedLz4
 {
@@ -15,6 +16,9 @@ namespace W3SavegameEditor.Core.ChunkedLz4
 
         private const int ChunkSize = 1024 * 1024;
         public const int HeaderSize = 3084;
+
+        //public static Encoding Encoding = Encoding.ASCII;
+        public static readonly Encoding Encoding = new ASCIIUnchangedEncoding();
 
         public static Stream Decompress(Stream input)
         {
@@ -78,10 +82,10 @@ namespace W3SavegameEditor.Core.ChunkedLz4
             lastChunk.EndOfChunkOffset = 0;
 
             MemoryStream outputStream = new MemoryStream();
-            using (BinaryWriter writer = new BinaryWriter(outputStream, Encoding.ASCII, true))
+            using (BinaryWriter writer = new BinaryWriter(outputStream, ChunkedLz4File.Encoding, true))
             {
-                writer.Write(Encoding.ASCII.GetBytes(header1));
-                writer.Write(Encoding.ASCII.GetBytes(header2));
+                writer.Write(ChunkedLz4File.Encoding.GetBytes(header1));
+                writer.Write(ChunkedLz4File.Encoding.GetBytes(header2));
 
                 writer.Write(chunkCount);
                 writer.Write(headerSize);

@@ -9,7 +9,7 @@ namespace W3SavegameEditor.Core.ChunkedLz4
 
         public static ChunkedLz4FileTable Read(Stream input, int chunkCount)
         {
-            using (BinaryReader reader = new BinaryReader(input, Encoding.ASCII, true))
+            using (BinaryReader reader = new BinaryReader(input, ChunkedLz4File.Encoding, true))
             {
                 Lz4Chunk[] chunks = new Lz4Chunk[chunkCount];
                 for (int i = 0; i < chunkCount; i++)
