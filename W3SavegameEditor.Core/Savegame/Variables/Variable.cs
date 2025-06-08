@@ -7,7 +7,6 @@ namespace W3SavegameEditor.Core.Savegame.Variables
         public string MagicNumber { get; set; }
 
         public string Name { get; set; }
-        public ushort NameIndex { get; set; }
         public int Size { get; set; }
         public int TokenSize { get; set; }
         public int Position { get; set; }

@@ -33,21 +33,20 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             return new BlckVariable
             {
                 Name = name,
-                NameIndex = nameIndex,
                 Variables = variables.ToArray(),
                 BlckSize = blckSize,
                 Unknown3 = unknown3,
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, BlckVariable variable)
+        public override void WriteImpl(BinaryWriter writer, BlckVariable variable, List<string> names)
         {
-            writer.Write(variable.NameIndex);
+            writer.Write(SavegameFile.GetVariableNameIndex(variable.Name, names));
             writer.Write(variable.BlckSize);
             writer.Write(variable.Unknown3);
 
             foreach (Variable variable2 in variable.Variables)
-                _parser.Write(writer, variable2);
+                _parser.Write(writer, variable2, names);
         }
     }
 }

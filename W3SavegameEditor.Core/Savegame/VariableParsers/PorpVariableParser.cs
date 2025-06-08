@@ -32,21 +32,19 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             return new PorpVariable
             {
                 Name = name,
-                NameIndex = nameIndex,
                 Type = type,
-                TypeIndex = typeIndex,
                 Value = value,
                 ValueSize = valueSize
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, PorpVariable variable)
+        public override void WriteImpl(BinaryWriter writer, PorpVariable variable, List<string> names)
         {
-            writer.Write(variable.NameIndex);
-            writer.Write(variable.TypeIndex);
+            writer.Write(SavegameFile.GetVariableNameIndex(variable.Name, names));
+            writer.Write(SavegameFile.GetVariableNameIndex(variable.Type, names));
             writer.Write(variable.ValueSize);
 
-            WriteValue(writer, variable.Type, variable.Value);
+            WriteValue(writer, variable.Type, variable.Value, names);
         }
     }
 }

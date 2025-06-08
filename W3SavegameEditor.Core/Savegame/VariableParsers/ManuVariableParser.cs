@@ -40,7 +40,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, ManuVariable manuVariable)
+        public override void WriteImpl(BinaryWriter writer, ManuVariable manuVariable, List<string> names)
         {
             int stringCount = manuVariable.Strings.Count;
 

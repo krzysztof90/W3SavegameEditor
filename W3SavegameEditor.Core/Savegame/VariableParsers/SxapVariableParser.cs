@@ -26,7 +26,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, SxapVariable variable)
+        public override void WriteImpl(BinaryWriter writer, SxapVariable variable, List<string> names)
         {
             writer.Write(variable.TypeCode1);
             writer.Write(variable.TypeCode2);

@@ -424,7 +424,7 @@ namespace W3SavegameEditor.Core.Savegame
             ManuEntry.Offset = (int)writer.BaseStream.Position;
 
             var manuVariableParser = new ManuVariableParser(null);
-            manuVariableParser.Write(writer, ManuVariable);
+            manuVariableParser.Write(writer, ManuVariable, ManuVariable.Strings);
         }
 
         private void WriteVariableTable(BinaryWriter writer)
@@ -471,7 +471,7 @@ namespace W3SavegameEditor.Core.Savegame
                     {
                         VariableTableEntries[i].Offset = (int)writer.BaseStream.Position;
 
-                        parser.Write(writer, variable);
+                        parser.Write(writer, variable, ManuVariable.Strings);
                     }
                 }
                 else
@@ -481,14 +481,6 @@ namespace W3SavegameEditor.Core.Savegame
 
         private void SetVariableProperties(Variable variable, List<string> strings)
         {
-            if (variable.Name != null)
-            {
-                variable.NameIndex = GetVariableNameIndex(variable.Name, strings);
-
-                if (variable is VariableTyped variableTyped)
-                    variableTyped.TypeIndex = GetVariableNameIndex(variableTyped.Type, strings);
-            }
-
             //TODO what for UnknownVariable and VL?
             if (variable is VariableSet variableSet)
             {
@@ -509,6 +501,8 @@ namespace W3SavegameEditor.Core.Savegame
 
         public static ushort GetVariableNameIndex(string name, List<string> strings)
         {
+            if (name == null)
+                return 0;
             if (!strings.Contains(name))
                 strings.Add(name);
             return (ushort)(strings.IndexOf(name) + 1);
@@ -516,6 +510,8 @@ namespace W3SavegameEditor.Core.Savegame
 
         public static string GetVariableIndexName(ushort index, List<string> strings)
         {
+            if (index == 0)
+                return null;
             return strings[index - 1];
         }
     }

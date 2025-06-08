@@ -25,19 +25,17 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             return new VlVariable
             {
                 Name = name,
-                NameIndex = nameIndex,
                 Type = type,
-                TypeIndex = typeIndex,
                 Value = value
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, VlVariable variable)
+        public override void WriteImpl(BinaryWriter writer, VlVariable variable, List<string> names)
         {
-            writer.Write(variable.NameIndex);
-            writer.Write(variable.TypeIndex);
+            writer.Write(SavegameFile.GetVariableNameIndex(variable.Name, names));
+            writer.Write(SavegameFile.GetVariableNameIndex(variable.Type, names));
 
-            WriteValue(writer, variable.Type, variable.Value);
+            WriteValue(writer, variable.Type, variable.Value, names);
         }
     }
 }

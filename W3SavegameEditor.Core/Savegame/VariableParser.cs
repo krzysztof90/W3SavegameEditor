@@ -58,7 +58,7 @@ namespace W3SavegameEditor.Core.Savegame
             return variable;
         }
 
-        public void Write(BinaryWriter writer, Variable variable)
+        public void Write(BinaryWriter writer, Variable variable, List<string> names)
         {
             if (variable is UnknownVariable unknownVariable)
             {
@@ -67,7 +67,7 @@ namespace W3SavegameEditor.Core.Savegame
             else
             {
                 VariableParserBase parser = CreateParser(variable.MagicNumber);
-                parser.Write(writer, variable);
+                parser.Write(writer, variable, names);
             }
         }
     }

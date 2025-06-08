@@ -33,11 +33,11 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, SsVariable variable)
+        public override void WriteImpl(BinaryWriter writer, SsVariable variable, List<string> names)
         {
             writer.Write(variable.SizeInner);
             foreach (Variable variable2 in variable.Variables)
-                _parser.Write(writer, variable2);
+                _parser.Write(writer, variable2, names);
         }
     }
 }

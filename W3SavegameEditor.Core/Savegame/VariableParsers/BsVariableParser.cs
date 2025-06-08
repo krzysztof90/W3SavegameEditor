@@ -20,12 +20,12 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
         {
             ushort nameIndex = reader.ReadUInt16(ref size);
             string name = null;
-            uint unknown1 = 0;
+            uint unknown2 = 0;
 
             if (nameIndex >= names.Count)
             {
                 //TODO why is that + why additional bytes are needed
-                unknown1 = reader.ReadUInt32(ref size);
+                unknown2 = reader.ReadUInt32(ref size);
             }
             else
                 name = SavegameFile.GetVariableIndexName(nameIndex, names);
@@ -33,17 +33,21 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             return new BsVariable
             {
                 Name = name,
-                NameIndex = nameIndex,
-                Unknown1 = unknown1,
+                Unknown1 = nameIndex,
+                Unknown2 = unknown2,
                 Variables = new Variable[0]
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, BsVariable variable)
+        public override void WriteImpl(BinaryWriter writer, BsVariable variable, List<string> names)
         {
-            writer.Write(variable.NameIndex);
             if (variable.Name == null)
+            {
                 writer.Write(variable.Unknown1);
+                writer.Write(variable.Unknown2);
+            }
+            else
+                writer.Write(SavegameFile.GetVariableNameIndex(variable.Name, names));
         }
     }
 }

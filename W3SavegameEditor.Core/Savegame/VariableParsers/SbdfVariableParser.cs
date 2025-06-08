@@ -104,7 +104,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, SbdfVariable variable)
+        public override void WriteImpl(BinaryWriter writer, SbdfVariable variable, List<string> names)
         {
             writer.Write(variable.Values.Count);
             foreach ((byte[] unknown1, byte unknown2, byte unknown3, byte unknown4, byte[] unknown5, short headerSize, byte stringSize, string text) value in variable.Values)

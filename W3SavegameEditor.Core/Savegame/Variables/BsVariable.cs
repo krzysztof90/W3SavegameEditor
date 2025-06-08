@@ -2,7 +2,8 @@
 {
     public class BsVariable : VariableSet
     {
-        public uint Unknown1 { get; set; }
+        public ushort Unknown1 { get; set; }
+        public uint Unknown2 { get; set; }
 
         public override string ToString()
         {

@@ -27,22 +27,19 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             return new AvalVariable
             {
                 Name = name,
-                NameIndex = nameIndex,
                 Type = type,
-                TypeIndex = typeIndex,
                 Value = value,
                 Unknown = unknown,
             };
         }
 
-        public override void WriteImpl(BinaryWriter writer, AvalVariable variable)
+        public override void WriteImpl(BinaryWriter writer, AvalVariable variable, List<string> names)
         {
-            //TODO don't store NameIndex and TypeIndex, get it from SavegameFile.GetVariableNameIndex
-            writer.Write(variable.NameIndex);
-            writer.Write(variable.TypeIndex);
+            writer.Write(SavegameFile.GetVariableNameIndex(variable.Name, names));
+            writer.Write(SavegameFile.GetVariableNameIndex(variable.Type, names));
             writer.Write(variable.Unknown);
 
-            WriteValue(writer, variable.Type, variable.Value);
+            WriteValue(writer, variable.Type, variable.Value, names);
         }
     }
 }
