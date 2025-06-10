@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using W3SavegameEditor.Core.ChunkedLz4;
 using W3SavegameEditor.Core.Savegame.Attributes;
-using W3SavegameEditor.Core.Savegame.Values;
-using W3SavegameEditor.Core.Savegame.Values.Engine;
 using W3SavegameEditor.Core.Savegame.Variables;
 
 namespace W3SavegameEditor.Core.Savegame.VariableParsers
@@ -275,14 +273,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                             unknown3 = reader.ReadBytes(16, ref size);
                         }
 
-                        var value = new EntityHandle
-                        {
-                            Unknown1 = unknown1,
-                            Unknown2 = unknown2,
-                            Unknown3 = unknown3,
-                        };
-
-                        return VariableValue<EntityHandle>.Create(value);
+                        return VariableValue<(byte, byte, byte[])>.Create((unknown1, unknown2, unknown3));
                     }
                 case "IdTag":
                     {
@@ -291,21 +282,12 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                 case "TagList":
                     {
                         byte tagListHeader = reader.ReadByte(ref size);
-                        bool tagListFlag = (tagListHeader & 128) > 0;
                         byte tagListCount = (byte)(tagListHeader & 127);
                         short[] tagListEntries = new short[tagListCount];
                         for (int i = 0; i < tagListCount; i++)
-                        {
                             tagListEntries[i] = reader.ReadInt16(ref size);
-                        }
 
-                        var value = new TagList
-                        {
-                            Flag = tagListFlag,
-                            Entities = tagListEntries
-                        };
-
-                        VariableValue<TagList> variableValue = VariableValue<TagList>.Create(value);
+                        VariableValue<short[]> variableValue = VariableValue<short[]>.Create(tagListEntries);
                         variableValue.AdditionalObject = tagListHeader;
                         return variableValue;
                     }
@@ -1042,12 +1024,12 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     break;
                 case "EntityHandle":
                     {
-                        EntityHandle value = (EntityHandle)variableValue.Object;
-                        writer.Write(value.Unknown1);
-                        if (value.Unknown1 > 0)
+                        (byte unknown1, byte unknown2, byte[] unknown3) = ((byte, byte, byte[]))variableValue.Object;
+                        writer.Write(unknown1);
+                        if (unknown1 > 0)
                         {
-                            writer.Write(value.Unknown2);
-                            writer.Write(value.Unknown3);
+                            writer.Write(unknown2);
+                            writer.Write(unknown3);
                         }
                     }
                     break;
@@ -1056,16 +1038,14 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     break;
                 case "TagList":
                     {
-                        TagList value = (TagList)variableValue.Object;
-
+                        short[] tagListEntries = (short[])variableValue.Object;
                         byte tagListHeader = (byte)variableValue.AdditionalObject;
+
                         writer.Write(tagListHeader);
 
                         byte tagListCount = (byte)(tagListHeader & 127);
                         for (int i = 0; i < tagListCount; i++)
-                        {
-                            writer.Write(value.Entities[i]);
-                        }
+                            writer.Write(tagListEntries[i]);
                     }
                     break;
                 case "eGwintFaction":
@@ -1317,7 +1297,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                 case "W3LevelManager":
                     {
                         (VariableValue value, string value1, string value2, string value3, string value4) = ((VariableValue, string, string, string, string))variableValue.Object;
-                        (byte[] unknown1, byte unknown2, byte[] unknown3,  string handleType) = ((byte[], byte, byte[],  string))variableValue.AdditionalObject;
+                        (byte[] unknown1, byte unknown2, byte[] unknown3, string handleType) = ((byte[], byte, byte[], string))variableValue.AdditionalObject;
 
                         ushort nameIndex1 = SavegameFile.GetVariableNameIndex(value1, names);
                         ushort nameIndex2 = SavegameFile.GetVariableNameIndex(value2, names);

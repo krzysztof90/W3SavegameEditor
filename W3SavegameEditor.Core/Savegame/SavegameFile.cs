@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using W3SavegameEditor.Core.ChunkedLz4;
 using W3SavegameEditor.Core.Common;
-using W3SavegameEditor.Core.Savegame.Values;
 using W3SavegameEditor.Core.Savegame.VariableParsers;
 using W3SavegameEditor.Core.Savegame.Variables;
 
@@ -43,8 +42,6 @@ namespace W3SavegameEditor.Core.Savegame
         public VariableTableEntry ManuEntry { get; set; }
         public Variable[] OrigVariables { get; set; }
         public Variable[] Variables { get; set; }
-
-        public SavegameRoot Root { get; set; }
 
         public static Task<SavegameFile> ReadAsync(
             string path,
@@ -286,11 +283,6 @@ namespace W3SavegameEditor.Core.Savegame
                 if (i % 250 == 0 && progress != null) progress.Report(true, false, i, VariableTableEntries.Length);
             }
 
-            // Parsing
-            var valueParser = new VariableValueParser();
-            var stack = new Stack<Variable>(variables.Reverse());
-            Root = valueParser.Parse<SavegameRoot>(stack);
-
             OrigVariables = variables;
         }
 
@@ -448,13 +440,13 @@ namespace W3SavegameEditor.Core.Savegame
 
         private void WriteVariables(BinaryWriter writer)
         {
+            //TODO with new list the game doesn't load properly
             //List<string> strings = new List<string>();
             List<string> strings = ManuVariable.Strings;
             foreach (Variable variable in OrigVariables)
             {
                 SetVariableProperties(variable, strings);
             }
-            //TODO must also contain names used in VariableParserBase.ReadValue
             ManuVariable.Strings = strings;
 
             VariableParser parser = new VariableParser();
