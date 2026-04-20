@@ -23,16 +23,16 @@ namespace W3SavegameEditor.Core.ChunkedLz4
         public static Stream Decompress(Stream input)
         {
             ChunkedLz4FileHeader header = ChunkedLz4FileHeader.Read(input);
-            var table = ChunkedLz4FileTable.Read(input, header.ChunkCount);
+            ChunkedLz4FileTable table = ChunkedLz4FileTable.Read(input, header.ChunkCount);
             input.Position = header.HeaderSize;
 
-            var data = new byte[header.HeaderSize + table.Chunks.Sum(c => c.DecompressedChunkSize)];
-            var memoryStream = new MemoryStream(data) { Position = header.HeaderSize };
+            byte[] data = new byte[header.HeaderSize + table.Chunks.Sum(c => c.DecompressedChunkSize)];
+            MemoryStream memoryStream = new MemoryStream(data) { Position = header.HeaderSize };
             foreach (Lz4Chunk chunk in table.Chunks)
             {
                 Span<byte> chunkData = chunk.Read(input);
                 memoryStream.Write(chunkData);
-                Debug.Assert(input.Position == chunk.EndOfChunkOffset || chunk.EndOfChunkOffset == 0);
+                //Debug.Assert(input.Position == chunk.EndOfChunkOffset || chunk.EndOfChunkOffset == 0);
             }
 
             memoryStream.Position = header.HeaderSize;

@@ -43,18 +43,14 @@ namespace W3SavegameEditor.Core.Savegame
         public Variable[] OrigVariables { get; set; }
         public Variable[] Variables { get; set; }
 
-        public static Task<SavegameFile> ReadAsync(
-            string path,
-            IReadSavegameProgress progress = null)
+        public static Task<SavegameFile> ReadAsync(string path, IReadSavegameProgress progress = null)
         {
             return Task.Run(() => Read(path, progress));
         }
 
-        public static SavegameFile Read(
-            string path,
-            IReadSavegameProgress progress = null)
+        public static SavegameFile Read(string path, IReadSavegameProgress progress = null)
         {
-            if (progress != null) progress.Report(true, true, 0, 0);
+            progress?.Report(true, true, 0, 0);
             using (FileStream compressedInputStream = File.OpenRead(path))
             using (Stream inputStream = ChunkedLz4File.Decompress(compressedInputStream))
             using (BinaryReader reader = new BinaryReader(inputStream, ChunkedLz4File.Encoding, true))
@@ -67,14 +63,14 @@ namespace W3SavegameEditor.Core.Savegame
                 savegameFile.ReadFooter(reader);
                 savegameFile.ReadStringTable(reader);
                 savegameFile.ReadVariableTable(reader);
-                if (progress != null) progress.Report(true, false, 0, savegameFile.VariableTableEntries.Length);
+                progress?.Report(true, false, 0, savegameFile.VariableTableEntries.Length);
                 savegameFile.ReadVariables(reader, progress);
 
                 savegameFile.ReferenceVariable();
 
                 //savegameFile.ReadAll(reader);
 
-                if (progress != null) progress.Report(false, false, 0, 0);
+                progress?.Report(false, false, 0, 0);
 
                 return savegameFile;
             }
@@ -118,7 +114,7 @@ namespace W3SavegameEditor.Core.Savegame
                 //    }
                 //}
 
-                using (var fileStream = File.Create(path))
+                using (FileStream fileStream = File.Create(path))
                 {
                     Stream s = outputStream;
 
@@ -213,7 +209,7 @@ namespace W3SavegameEditor.Core.Savegame
         private void ReadVariableNameSection(BinaryReader reader)
         {
             reader.BaseStream.Position = StringTableOffset;
-            var manuVariableParser = new ManuVariableParser(null);
+            ManuVariableParser manuVariableParser = new ManuVariableParser(null);
             int manuVariableSize = (int)(StringTableFooterOffset - StringTableOffset);
             ManuVariable manuVariable = (ManuVariable)manuVariableParser.Parse(reader, null, ref manuVariableSize);
             manuVariable.MagicNumber = manuVariableParser.MagicNumber;
@@ -240,13 +236,13 @@ namespace W3SavegameEditor.Core.Savegame
 
         private void ReadVariables(BinaryReader reader, IReadSavegameProgress progress)
         {
-            var parser = new VariableParser();
+            VariableParser parser = new VariableParser();
 
             Variable[] variables = new Variable[VariableTableEntries.Length];
             for (int i = 0; i < VariableTableEntries.Length; i++)
             {
                 // Calculate the size of the next token
-                var size = VariableTableEntries[i].Size;
+                int size = VariableTableEntries[i].Size;
                 int tokenSize;
 
                 // There is a hidden variable before the last one
@@ -264,9 +260,9 @@ namespace W3SavegameEditor.Core.Savegame
 
                 reader.BaseStream.Position = VariableTableEntries[i].Offset;
                 // Tokenizing
-                var readTokenSize = tokenSize;
+                int readTokenSize = tokenSize;
 
-                var variable = parser.Parse(reader, ManuVariable.Strings, ref readTokenSize);
+                Variable variable = parser.Parse(reader, ManuVariable.Strings, ref readTokenSize);
 
                 Debug.Assert(readTokenSize == 0);
 
@@ -306,8 +302,7 @@ namespace W3SavegameEditor.Core.Savegame
         {
             Variable currentVariable = OrigVariables[i];
 
-            VariableSet currentVariableSet = currentVariable as VariableSet;
-            if (currentVariableSet != null && currentVariableSet.Size > currentVariableSet.TokenSize)
+            if (currentVariable is VariableSet currentVariableSet && currentVariableSet.Size > currentVariableSet.TokenSize)
             {
                 int size = currentVariableSet.Size - currentVariableSet.TokenSize;
                 List<Variable> childrenVariables = new List<Variable>();
@@ -345,7 +340,7 @@ namespace W3SavegameEditor.Core.Savegame
         {
             writer.BaseStream.Position = 0;
 
-            foreach (var bufferOrig in AllBytes)
+            foreach ((byte[], int) bufferOrig in AllBytes)
             {
                 long l = writer.BaseStream.Position;
                 byte[] bufferCurrent = new byte[AllBytesLength];
@@ -415,7 +410,7 @@ namespace W3SavegameEditor.Core.Savegame
             StringTableOffset = writer.BaseStream.Position;
             ManuEntry.Offset = (int)writer.BaseStream.Position;
 
-            var manuVariableParser = new ManuVariableParser(null);
+            ManuVariableParser manuVariableParser = new ManuVariableParser(null);
             manuVariableParser.Write(writer, ManuVariable, ManuVariable.Strings);
         }
 

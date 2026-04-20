@@ -35,7 +35,7 @@ namespace W3SavegameEditor.Core.Savegame
 
         public Variable Parse(BinaryReader reader, List<string> names, ref int size)
         {
-            var magic = reader.PeekString(4);
+            string magic = reader.PeekString(4);
             VariableParserBase parser = CreateParser(reader);
 
             if (parser == null)
@@ -43,7 +43,7 @@ namespace W3SavegameEditor.Core.Savegame
                 //TODO Is it always after some variable type? Is its size constant?
                 //some contains magic strings inside
                 //TODO finally remove this
-                var unknownVariable = new UnknownVariable
+                UnknownVariable unknownVariable = new UnknownVariable
                 {
                     Data = reader.ReadBytes(size, ref size)
                 };

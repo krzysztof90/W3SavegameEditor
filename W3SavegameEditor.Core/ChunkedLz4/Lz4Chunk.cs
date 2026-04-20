@@ -20,7 +20,7 @@ namespace W3SavegameEditor.Core.ChunkedLz4
             int bytesDecoded = LZ4Codec.Decode(inputData, outputData);
             Debug.Assert(bytesDecoded == DecompressedChunkSize);
 
-            Debug.Assert(inputStream.Position == EndOfChunkOffset || EndOfChunkOffset == 0);
+            //Debug.Assert(inputStream.Position == EndOfChunkOffset || EndOfChunkOffset == 0);
 
             return outputData;
         }

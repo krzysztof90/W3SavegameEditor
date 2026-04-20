@@ -20,10 +20,7 @@ namespace W3SavegameEditor.Core.Savegame.Variables
             };
         }
 
-        public override object Object
-        {
-            get { return Value; }
-        }
+        public override object Object => Value; 
 
         public override string ToString()
         {
@@ -68,15 +65,9 @@ namespace W3SavegameEditor.Core.Savegame.Variables
             VariableValues.SetValue(variableValue, i);
         }
 
-        public int Length
-        {
-            get { return Value.Length; }
-        }
+        public int Length => Value.Length; 
 
-        public override object Object
-        {
-            get { return Value; }
-        }
+        public override object Object => Value; 
 
         public static VariableArrayValue Create(Type type, int length)
         {

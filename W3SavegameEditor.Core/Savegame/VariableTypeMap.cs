@@ -28,7 +28,7 @@ namespace W3SavegameEditor.Core.Savegame
 
         public VariableTypeMap()
         {
-            var strings = new List<string>
+            List<string> strings = new List<string>
             {
                 " ",
                 "__operator",

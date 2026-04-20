@@ -12,7 +12,7 @@ namespace W3SavegameEditor.Core
 
             if (attributes != null && attributes.Length != 0)
                 return predicate(attributes[0]);
-            return default(T);
+            return default;
         }
 
         public static Type GetTypeByAttribute<T, A>(Func<A, bool> predicate) where A : Attribute

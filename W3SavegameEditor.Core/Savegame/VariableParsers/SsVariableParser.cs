@@ -22,7 +22,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             List<Variable> variables = new List<Variable>();
             while (size > 0)
             {
-                var variable = _parser.Parse(reader, names, ref size);
+                Variable variable = _parser.Parse(reader, names, ref size);
                 variables.Add(variable);
             }
 

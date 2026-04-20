@@ -29,10 +29,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
             _parser = parser;
         }
 
-        public override Type SupportedType
-        {
-            get { return typeof(T); }
-        }
+        public override Type SupportedType=> typeof(T); 
 
         public override Variable Parse(BinaryReader reader, List<string> names, ref int size)
         {
@@ -50,8 +47,8 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
 
         public override void Verify(BinaryReader reader, ref int size)
         {
-            var bytesToRead = MagicNumber.Length;
-            var readMagicNumber = reader.ReadString(bytesToRead, ref size);
+            int bytesToRead = MagicNumber.Length;
+            string readMagicNumber = reader.ReadString(bytesToRead, ref size);
             if (readMagicNumber != MagicNumber)
             {
                 throw new InvalidOperationException(
@@ -140,7 +137,7 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
 
                         byte[] guidData = reader.ReadBytes(length, ref size);
 
-                        var value = new Guid(guidData);
+                        Guid value = new Guid(guidData);
 
                         VariableValue<Guid> variableValue = VariableValue<Guid>.Create(value);
                         variableValue.AdditionalObject = guidData;
@@ -635,6 +632,12 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         //3-4 "String"
                     }
                     return ReadUnknownBytes(reader, size, ref size);
+                case "SGameplayFactRemoval":
+                    {
+                        //1-2 "factName"
+                        //3-4 "String"
+                    }
+                    return ReadUnknownBytes(reader, size, ref size);
                 case "SAbilityAttributeValue":
                     {
                         //1-2 "valueAdditive"
@@ -866,8 +869,8 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     {
                         if (type.StartsWith("array:2,0,"))
                         {
-                            var arrayElementType = type.Substring("array:2,0,".Length);
-                            var arrayElementClrType = GetClrType(arrayElementType);
+                            string arrayElementType = type.Substring("array:2,0,".Length);
+                            Type arrayElementClrType = GetClrType(arrayElementType);
                             int arrayLength = reader.ReadInt32(ref size);
 
                             VariableArrayValue arrayValue = VariableArrayValue.Create(arrayElementClrType, arrayLength);
@@ -882,13 +885,13 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         }
                         else if (type.StartsWith("handle:"))
                         {
-                            var handleType = type.Substring("handle:".Length);
+                            string handleType = type.Substring("handle:".Length);
                             VariableValue value = ReadValue(reader, handleType, names, ref size);
                             return VariableHandleValue<object>.Create(value);
                         }
                         else if (type.StartsWith("soft:"))
                         {
-                            var handleType = type.Substring("soft:".Length);
+                            string handleType = type.Substring("soft:".Length);
                             VariableValue value = ReadValue(reader, handleType, names, ref size);
                             return VariableSoftValue<object>.Create(value);
                         }
@@ -1270,6 +1273,9 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                 case "SGameplayFact":
                     WriteUnknownBytes(writer, variableValue);
                     break;
+                case "SGameplayFactRemoval":
+                    WriteUnknownBytes(writer, variableValue);
+                    break;
                 case "SAbilityAttributeValue":
                     WriteUnknownBytes(writer, variableValue);
                     break;
@@ -1410,8 +1416,8 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                         VariableArrayValue variableArrayValue = variableValue as VariableArrayValue;
                         int arrayLength = ((Array)variableValue.Object).Length;
 
-                        var arrayElementType = type.Substring("array:2,0,".Length);
-                        var arrayElementClrType = GetClrType(arrayElementType);
+                        string arrayElementType = type.Substring("array:2,0,".Length);
+                        Type arrayElementClrType = GetClrType(arrayElementType);
 
                         writer.Write(arrayLength);
 
@@ -1425,22 +1431,20 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     }
                     else if (type.StartsWith("handle:"))
                     {
-                        var handleType = type.Substring("handle:".Length);
+                        string handleType = type.Substring("handle:".Length);
                         WriteValue(writer, handleType, (VariableValue)variableValue.Object, names);
 
                         break;
                     }
                     else if (type.StartsWith("soft:"))
                     {
-                        var handleType = type.Substring("soft:".Length);
+                        string handleType = type.Substring("soft:".Length);
                         WriteValue(writer, handleType, (VariableValue)variableValue.Object, names);
 
                         break;
                     }
                     else
-                    {
                         throw new NotImplementedException();
-                    }
             }
         }
 

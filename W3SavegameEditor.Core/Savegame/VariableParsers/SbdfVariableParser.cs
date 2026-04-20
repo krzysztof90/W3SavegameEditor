@@ -35,50 +35,32 @@ namespace W3SavegameEditor.Core.Savegame.VariableParsers
                     //TODO this adds empty entry to 'values'. What is it?
 
                     if (stringSize < 64)
-                    {
                         unknown1 = reader.ReadBytes(stringSize * 2, ref size);
-                    }
                     //TODO to algorithm
                     else if (stringSize == 64)
-                    {
                         unknown1 = reader.ReadBytes(128 + 1, ref size);
-                    }
                     else if (stringSize == 71)
-                    {
                         unknown1 = reader.ReadBytes(655, ref size);
-                    }
                     else if (stringSize == 95)
-                    {
                         unknown1 = reader.ReadBytes(319, ref size);
-                    }
                     else if (stringSize == 111)
                     {
-                        var e = reader.PeekByte();
+                        byte e = reader.PeekByte();
                         if (e == 7)
-                        {
                             unknown1 = reader.ReadBytes(991, ref size);
-                        }
                         else if (e == 2)
-                        {
                             unknown1 = reader.ReadBytes(351, ref size);
-                        }
                         else
-                        {
                             throw new NotImplementedException();
-                        }
                     }
                     else
-                    {
                         throw new NotImplementedException();
-                    }
                 }
                 else
                 {
                     unknown2 = reader.PeekByte();
                     if (unknown2 == 1)
-                    {
                         reader.ReadByte(ref size);
-                    }
 
                     text = reader.ReadString(stringSize - 128, ref size);
                 }

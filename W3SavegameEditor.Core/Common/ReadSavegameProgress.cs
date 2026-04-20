@@ -12,7 +12,7 @@ namespace W3SavegameEditor.Core.Common
 
         public bool Running
         {
-            get { return _running; }
+            get => _running;
             set
             {
                 if (_running != value)
@@ -25,7 +25,7 @@ namespace W3SavegameEditor.Core.Common
 
         public bool Indeterministic
         {
-            get { return _indeterministic; }
+            get => _indeterministic;
             set
             {
                 if (_indeterministic != value)
@@ -38,7 +38,7 @@ namespace W3SavegameEditor.Core.Common
 
         public int Value
         {
-            get { return _value; }
+            get => _value;
             set
             {
                 if (_value != value)
@@ -51,7 +51,7 @@ namespace W3SavegameEditor.Core.Common
 
         public int Max
         {
-            get { return _max; }
+            get => _max;
             set
             {
                 if (_max != value)
@@ -74,8 +74,7 @@ namespace W3SavegameEditor.Core.Common
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-            var handler = PropertyChanged;
-            if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
